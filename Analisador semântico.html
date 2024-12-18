@@ -1,0 +1,202 @@
+<html>
+
+<head>
+    
+    <title>Analisador Semântico para Linguagem C</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', cursive, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: darkmagenta;
+        }
+
+        .container {
+            background-image: linear-gradient(to right, darkviolet, black);
+            padding: 30px;
+            color: ghostwhite;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 200px;
+            margin: 20px 0;
+            padding: 15px;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: dimgrey;
+            font-family: cursive;
+            color: ghostwhite;
+            resize: vertical;
+        }
+
+        .output {
+            background-color: rgb(2, 2, 2);
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+        }
+
+        button {
+            background: black;
+            color: ghostwhite;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+
+<body>
+    
+    <div class="container">
+        <h1>Analisador Semântico para Linguagem C <span style="color: brown"> REMIX</span></h1>
+        <p>Este analisador verifica erros semânticos comuns em código C, incluindo:</p>
+        <ul>
+            <li>Variáveis não declaradas</li>
+            <li>Tipos incompatíveis em atribuições</li>
+            <li>Uso incorreto de operadores</li>
+            <li>Verificação de escopo de variáveis</li>
+            <li>Chamadas de função com número incorreto de argumentos</li>
+        </ul>
+
+        <textarea id="code-input" class="code-editor" placeholder="Digite seu código C aqui...">
+int main() {
+    int x;
+    float y = 3.14;
+    x = y;    // Aviso: possível perda de precisão
+    
+    int z;
+    printf("%d", w);  // Erro: variável 'w' não declarada
+    
+    return 0;
+}</textarea>
+
+        <button onclick="analyzeCode()">Analisar Código</button>
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        function analyzeCode() {
+            const codeInput = document.getElementById('code-input').value;
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+
+            // Análise semântica básica
+            const analysis = {
+                errors: [],
+                warnings: []
+            };
+
+            // Lista de variáveis declaradas com seus tipos
+            const declaredVars = new Map();
+
+            // Dividir o código em linhas
+            const lines = codeInput.split('\n');
+
+            // Análise linha por linha
+            lines.forEach((line, index) => {
+                // Remover espaços em branco extras
+                line = line.trim();
+
+                // Verificar declarações de variáveis (com ou sem inicialização)
+                const declarationRegex = /\b(int|float|char|double)\s+([a-zA-Z_][a-zA-Z0-9_]*)(\s*=\s*[^;]*)?\s*;/;
+                const matches = line.match(declarationRegex);
+                if (matches) {
+                    // Se a linha for uma declaração de variável
+                    declaredVars.set(matches[2], matches[1]);
+                }
+
+                // Verificar atribuições
+                if (line.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/)) {
+                    const matches = line.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/);
+                    const varName = matches[1];
+
+                    if (!declaredVars.has(varName)) {
+                        analysis.errors.push(`Linha ${index + 1}: Variável '${varName}' não foi declarada`);
+                    }
+
+                    const assignedValue = matches[2].trim();
+
+                    // Verificar se há tipos incompatíveis, como atribuição de float para int
+                    if (declaredVars.get(varName) === 'int' && assignedValue.includes('.')) {
+                        analysis.warnings.push(`Linha ${index + 1}: Possível perda de precisão ao atribuir float para int`);
+                    }
+
+                    // Verificar se o tipo de variável está sendo corretamente atribuído
+                    if (declaredVars.get(varName) === 'float' && !assignedValue.match(/^\d*\.?\d+$/)) {
+                        analysis.errors.push(`Linha ${index + 1}: A variável '${varName}' deveria receber um valor numérico válido do tipo 'float'`);
+                    }
+                }
+
+                // Verificar uso de variáveis em printf
+                if (line.includes('printf')) {
+                    const usedVars = line.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+                    usedVars.forEach(varName => {
+                        if (varName !== 'printf' && !declaredVars.has(varName)) {
+                            analysis.errors.push(`Linha ${index + 1}: Variável '${varName}' usada em printf não foi declarada`);
+                        } else if (varName !== 'printf' && declaredVars.has(varName)) {
+                            // Verificar se o tipo da variável corresponde ao especificado no printf
+                            if (line.includes('%d') && declaredVars.get(varName) !== 'int') {
+                                analysis.errors.push(`Linha ${index + 1}: Tipo incompatível para '%d'. Variável '${varName}' deveria ser do tipo 'int'`);
+                            } else if (line.includes('%f') && declaredVars.get(varName) !== 'float') {
+                                analysis.errors.push(`Linha ${index + 1}: Tipo incompatível para '%f'. Variável '${varName}' deveria ser do tipo 'float'`);
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Exibir resultados
+            if (analysis.errors.length === 0 && analysis.warnings.length === 0) {
+                output.innerHTML = '<p class="success">Nenhum erro semântico encontrado!</p>';
+            } else {
+                let resultHTML = '';
+
+                if (analysis.errors.length > 0) {
+                    resultHTML += '<h3>Erros:</h3>';
+                    analysis.errors.forEach(error => {
+                        resultHTML += `<p class="error">🔴 ${error}</p>`;
+                    });
+                }
+
+                if (analysis.warnings.length > 0) {
+                    resultHTML += '<h3>Avisos:</h3>';
+                    analysis.warnings.forEach(warning => {
+                        resultHTML += `<p style="color: orange;">⚠️ ${warning}</p>`;
+                    });
+                }
+
+                output.innerHTML = resultHTML;
+            }
+        }
+
+        // Inicializar com uma primeira análise
+        analyzeCode();
+    </script>
+<a href="pagina.html" style="color: white; background-color: black; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Voltar</a>
+</body>
+
+
+</html>

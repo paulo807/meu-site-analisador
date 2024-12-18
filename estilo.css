@@ -1,0 +1,25 @@
+body {
+    background-color: rgb(21, 23, 23);
+}
+
+h1 {
+    color: rgb(210, 197, 197);
+    padding-block-end: 12px;
+    text-align: center;
+    font-family: Cambria, Georgia;
+}
+
+a {
+    color: rgb(226, 208, 43);
+    display: block;
+    font-size: larger;
+    padding: 6px;
+    text-align: center;
+    margin-top: 3px;
+    font-style: oblique;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+a:hover {
+    text-decoration-color: blue;
+}
